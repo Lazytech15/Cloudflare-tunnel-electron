@@ -9,15 +9,9 @@
     "dev": "NODE_ENV=development electron . --dev",
     "build": "electron-builder",
     "dist": "electron-builder --publish=never",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps && cd web-app && npm install"
   },
-  "keywords": [
-    "electron",
-    "sqlite",
-    "database",
-    "tunnel",
-    "cloudflare"
-  ],
+  "keywords": ["electron", "sqlite", "database", "tunnel", "cloudflare"],
   "author": "Emmanuel S. Ablao",
   "license": "MIT",
   "devDependencies": {
@@ -28,6 +22,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "http-proxy-middleware": "^2.0.6",
     "node-fetch": "^3.3.2",
     "sqlite": "^5.0.1",
     "sqlite3": "^5.1.7"
@@ -45,6 +40,7 @@
       "preload.js",
       "server/**/*",
       "renderer/**/*",
+      "web-app/**/*",
       "package.json",
       "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
       "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
@@ -64,6 +60,10 @@
         "to": "app/server"
       },
       {
+        "from": "web-app",
+        "to": "app/web-app"
+      },
+      {
         "from": "node_modules",
         "to": "app/node_modules",
         "filter": ["**/*"]
@@ -75,9 +75,7 @@
         "to": "database.db"
       }
     ],
-    "asarUnpack": [
-      "node_modules/sqlite3/**/*"
-    ],
+    "asarUnpack": ["node_modules/sqlite3/**/*"],
     "win": {
       "target": [
         {

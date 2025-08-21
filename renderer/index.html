@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" href="../build/icon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Access Database Management</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <h1>🗃️ Easy Access Database</h1>
+        <div class="status-bar">
+            <div id="database-status" class="status-indicator stopped">Database Server: Stopped</div>
+            <div id="tunnel-status" class="status-indicator stopped">Cloudflare Tunnel: Stopped</div>
+        </div>
+        <div class="controls">
+            <button id="start-server" class="btn-primary">Start Server</button>
+            <button id="start-tunnel" class="btn-secondary" disabled>Start Tunnel</button>
+            <button id="stop-services" class="btn-danger" disabled>Stop Services</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="left-panel">
+            <div class="urls-section">
+                <h2>🔗 Access URLs</h2>
+                <div id="urls-container">
+                    <p class="no-urls">Start the database server to see access URLs</p>
+                </div>
+            </div>
+
+            <div class="terminal-section">
+                <div class="terminal-header">
+                    <h2>📟 Terminal Output</h2>
+                    <button class="btn-clear" onclick="clearTerminal()">Clear</button>
+                </div>
+                <div id="terminal"></div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="info-section">
+                <h2>ℹ️ System Information</h2>
+                
+                <div class="info-item">
+                    <div class="info-label">Database Location</div>
+                    <div class="info-value" id="database-path">Not available</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">Local Port</div>
+                    <div class="info-value">3001</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">Server Status</div>
+                    <div class="info-value" id="server-status">Stopped</div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="help-section">
+                    <h3>📚 Quick Help</h3>
+                    <ul>
+                        <li>Click "Start Server" to run the database locally</li>
+                        <li>Use "Start Tunnel" to make it publicly accessible</li>
+                        <li>Local URL works only on this computer</li>
+                        <li>Network URL works on your local network</li>
+                        <li>Public URL works from anywhere</li>
+                        <li>Check terminal for detailed logs</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h3>🛡️ Security Notes</h3>
+                    <ul>
+                        <li>Public tunnels expose your database to the internet</li>
+                        <li>Consider adding authentication for production use</li>
+                        <li>Monitor terminal logs for access attempts</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

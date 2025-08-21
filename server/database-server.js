@@ -368,7 +368,7 @@ app.get("/", (req, res) => {
   res.send(`
     <html>
       <head>
-        <title>SQLite Database API</title>
+        <title>Easy Access Database Management</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
@@ -392,7 +392,7 @@ app.get("/", (req, res) => {
       </head>
       <body>
         <div class="container">
-          <h1>🗄️ SQLite Database API</h1>
+          <h1>🗃️ Easy Access Database</h1>
           <p class="status">✅ Database server is running and ready!</p>
           <p>Your database is now publicly accessible through this REST API.</p>
           

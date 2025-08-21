@@ -317,3 +317,24 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #808080;
         }
+
+        .info-value.status-running {
+    color: #51cf66;
+    font-weight: bold;
+}
+
+.info-value.status-stopped {
+    color: #ff6b6b;
+    font-weight: bold;
+}
+
+/* Optional: Add a small indicator dot */
+.info-value.status-running::before {
+    content: "● ";
+    color: #51cf66;
+}
+
+.info-value.status-stopped::before {
+    content: "● ";
+    color: #ff6b6b;
+}

@@ -681,14 +681,6 @@ app.get("/api/employees/:id", async (req, res) => {
 
     const { id } = req.params;
 
-    // Validate ID
-    if (!id || isNaN(id)) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Invalid employee ID" 
-      });
-    }
-
     const employee = await db.get(`
       SELECT 
         uid as id,
@@ -977,14 +969,6 @@ app.delete("/api/employees/:id", async (req, res) => {
 
     const { id } = req.params;
 
-    // Validate ID
-    if (!id || isNaN(id)) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Invalid employee ID" 
-      });
-    }
-
     // Check if employee exists and get their info for confirmation
     const employee = await db.get(
       "SELECT uid, first_name, last_name, id_number, position, department FROM emp_list WHERE uid = ?", 
@@ -998,11 +982,6 @@ app.delete("/api/employees/:id", async (req, res) => {
       });
     }
 
-    // Before deleting, you might want to check if the employee has related records
-    // in other tables (like attendance, payroll, etc.) and handle them appropriately
-    // For now, we'll just delete the employee record
-
-    // Perform the deletion
     const result = await db.run("DELETE FROM emp_list WHERE uid = ?", [id]);
 
     if (result.changes === 0) {
@@ -1045,14 +1024,6 @@ app.patch("/api/employees/:id/status", async (req, res) => {
 
     const { id } = req.params;
     const { status } = req.body;
-
-    // Validate ID
-    if (!id || isNaN(id)) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Invalid employee ID" 
-      });
-    }
 
     // Validate status
     const validStatuses = ['Active', 'Inactive', 'On Leave', 'Terminated'];
@@ -1229,13 +1200,6 @@ app.get("/api/employees/:id/history", async (req, res) => {
     }
 
     const { id } = req.params;
-
-    if (!id || isNaN(id)) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Invalid employee ID" 
-      });
-    }
 
     // This assumes you have an audit/history table
     // If you don't have one, you might want to create it to track changes
@@ -1608,14 +1572,6 @@ app.put("/api/employees/:id", async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    // Validate ID
-    if (!id || isNaN(id)) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Invalid employee ID" 
-      });
-    }
-
     // Check if employee exists
     const existingEmployee = await db.get('SELECT uid FROM emp_list WHERE uid = ?', [id]);
     if (!existingEmployee) {
@@ -1767,8 +1723,6 @@ app.get("/api/departments", async (req, res) => {
   }
 });
 
-// Replace your existing validation endpoint in server.js with this improved version:
-
 app.get("/api/employees/validate", async (req, res) => {
   console.log('=== VALIDATION ENDPOINT START ===');
   console.log('Raw query params:', req.query);
@@ -1800,17 +1754,23 @@ app.get("/api/employees/validate", async (req, res) => {
     // Check email uniqueness
     if (email && email.trim()) {
       try {
-        let emailQuery = 'SELECT uid FROM emp_list WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))';
-        let emailParams = [email];
-        
-        if (excludeId && !isNaN(parseInt(excludeId))) {
-          emailQuery += ' AND uid != ?';
-          emailParams.push(parseInt(excludeId));
+        // Basic email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+          validationResults.emailAvailable = false;
+        } else {
+          let emailQuery = 'SELECT uid FROM emp_list WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))';
+          let emailParams = [email];
+          
+          if (excludeId && !isNaN(parseInt(excludeId))) {
+            emailQuery += ' AND uid != ?';
+            emailParams.push(parseInt(excludeId));
+          }
+          
+          const emailExists = await db.get(emailQuery, emailParams);
+          validationResults.emailAvailable = !emailExists;
         }
-        
-        const emailExists = await db.get(emailQuery, emailParams);
-        validationResults.emailAvailable = !emailExists;
-        console.log('Email validation result:', { email, exists: !!emailExists, available: !emailExists });
+        console.log('Email validation result:', { email, available: validationResults.emailAvailable });
       } catch (dbError) {
         console.error("Database error checking email:", dbError);
         return res.status(500).json({
@@ -1834,7 +1794,7 @@ app.get("/api/employees/validate", async (req, res) => {
         
         const usernameExists = await db.get(usernameQuery, usernameParams);
         validationResults.usernameAvailable = !usernameExists;
-        console.log('Username validation result:', { username, exists: !!usernameExists, available: !usernameExists });
+        console.log('Username validation result:', { username, available: validationResults.usernameAvailable });
       } catch (dbError) {
         console.error("Database error checking username:", dbError);
         return res.status(500).json({
@@ -1845,43 +1805,39 @@ app.get("/api/employees/validate", async (req, res) => {
       }
     }
 
-    // Check employee ID uniqueness - FIXED VALIDATION
+    // Check employee ID uniqueness - REMOVE ALL FORMAT VALIDATION
     if (employeeId && employeeId.trim()) {
       try {
         const trimmedEmployeeId = employeeId.trim();
         
-        // Remove overly strict validation - accept any non-empty employee ID
+        // Only check if the value is not empty - no format validation
         if (!trimmedEmployeeId) {
           validationResults.employeeIdAvailable = false;
-          return res.json({
-            success: true,
-            data: { ...validationResults, employeeIdAvailable: false }
+        } else {
+          let employeeIdQuery = 'SELECT uid, id_number FROM emp_list WHERE TRIM(id_number) = ?';
+          let employeeIdParams = [trimmedEmployeeId];
+          
+          if (excludeId && !isNaN(parseInt(excludeId))) {
+            employeeIdQuery += ' AND uid != ?';
+            employeeIdParams.push(parseInt(excludeId));
+          }
+          
+          console.log('Executing employee ID query:', { 
+            query: employeeIdQuery, 
+            params: employeeIdParams,
+            originalEmployeeId: employeeId,
+            trimmedEmployeeId: trimmedEmployeeId
+          });
+          
+          const employeeIdExists = await db.get(employeeIdQuery, employeeIdParams);
+          validationResults.employeeIdAvailable = !employeeIdExists;
+          console.log('Employee ID validation result:', { 
+            employeeId: trimmedEmployeeId, 
+            exists: !!employeeIdExists, 
+            available: !employeeIdExists,
+            foundRecord: employeeIdExists 
           });
         }
-
-        let employeeIdQuery = 'SELECT uid, id_number FROM emp_list WHERE TRIM(id_number) = ?';
-        let employeeIdParams = [trimmedEmployeeId];
-        
-        if (excludeId && !isNaN(parseInt(excludeId))) {
-          employeeIdQuery += ' AND uid != ?';
-          employeeIdParams.push(parseInt(excludeId));
-        }
-        
-        console.log('Executing employee ID query:', { 
-          query: employeeIdQuery, 
-          params: employeeIdParams,
-          originalEmployeeId: employeeId,
-          trimmedEmployeeId: trimmedEmployeeId
-        });
-        
-        const employeeIdExists = await db.get(employeeIdQuery, employeeIdParams);
-        validationResults.employeeIdAvailable = !employeeIdExists;
-        console.log('Employee ID validation result:', { 
-          employeeId: trimmedEmployeeId, 
-          exists: !!employeeIdExists, 
-          available: !employeeIdExists,
-          foundRecord: employeeIdExists 
-        });
         
       } catch (dbError) {
         console.error("Database error checking employee ID:", dbError);
@@ -1896,7 +1852,7 @@ app.get("/api/employees/validate", async (req, res) => {
     // Check ID barcode uniqueness
     if (idBarcode && idBarcode.trim()) {
       try {
-        let barcodeQuery = 'SELECT uid FROM emp_list WHERE TRIM(id_barcode) = TRIM(?)';
+        let barcodeQuery = 'SELECT uid FROM emp_list WHERE TRIM(id_barcode) = TRIM(?) AND id_barcode IS NOT NULL AND id_barcode != ""';
         let barcodeParams = [idBarcode];
         
         if (excludeId && !isNaN(parseInt(excludeId))) {
@@ -1906,7 +1862,7 @@ app.get("/api/employees/validate", async (req, res) => {
         
         const barcodeExists = await db.get(barcodeQuery, barcodeParams);
         validationResults.idBarcodeAvailable = !barcodeExists;
-        console.log('ID Barcode validation result:', { idBarcode, exists: !!barcodeExists, available: !barcodeExists });
+        console.log('ID Barcode validation result:', { idBarcode, available: validationResults.idBarcodeAvailable });
       } catch (dbError) {
         console.error("Database error checking ID barcode:", dbError);
         return res.status(500).json({

@@ -366,11 +366,11 @@ app.get("/api/auth", async (req, res) => {
 
     // Define valid departments (should match your frontend departmentInfo keys)
     const validDepartments = [
-      'hr', 
-      'operations', 
-      'finance-payroll', 
-      'procurement', 
-      'engineering', 
+      'Human Resources', 
+      'Operation', 
+      'Finance', 
+      'Procurement', 
+      'Engineering', 
       'super-admin'
     ];
 
@@ -1399,7 +1399,6 @@ app.get("/api/employees/export", async (req, res) => {
 });
 
 //Add new Employee
-// POST API endpoint for adding new employees (Recruitment)
 app.post("/api/employees", async (req, res) => {
   try {
     if (!db) {
@@ -1424,6 +1423,8 @@ app.post("/api/employees", async (req, res) => {
       salary,
       hireDate,
       status = 'Active',
+      employeeId, // This will be mapped to id_number
+      idBarcode, // Manual input for id_barcode
       // Government IDs (optional for new employees)
       tinNumber,
       sssNumber,
@@ -1434,7 +1435,7 @@ app.post("/api/employees", async (req, res) => {
       accessLevel = 'user'
     } = req.body;
 
-    console.log('Adding new employee:', { firstName, lastName, position, department }); // Debug log
+    console.log('Adding new employee:', { firstName, lastName, position, department, employeeId, idBarcode }); // Debug log
 
     // Validation - required fields
     if (!firstName || !lastName) {
@@ -1448,6 +1449,13 @@ app.post("/api/employees", async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "Email, position, and department are required"
+      });
+    }
+
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        error: "Employee ID is required"
       });
     }
 
@@ -1473,15 +1481,18 @@ app.post("/api/employees", async (req, res) => {
       });
     }
 
-    // Generate employee ID number
-    const currentYear = new Date().getFullYear();
-    const countResult = await db.get(
-      'SELECT COUNT(*) as count FROM emp_list WHERE hire_date LIKE ?', 
-      [`${currentYear}%`]
+    // Check if employee ID already exists
+    const existingEmployeeId = await db.get(
+      'SELECT uid, id_number FROM emp_list WHERE id_number = ?', 
+      [employeeId]
     );
-    const employeeCount = (countResult?.count || 0) + 1;
-    const generatedIdNumber = `EMP-${currentYear}-${String(employeeCount).padStart(3, '0')}`;
-    const generatedIdBarcode = `${generatedIdNumber.replace(/-/g, '')}BAR`;
+
+    if (existingEmployeeId) {
+      return res.status(400).json({
+        success: false,
+        error: "An employee with this ID already exists"
+      });
+    }
 
     // Generate username if not provided
     const generatedUsername = username || `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/\s/g, '');
@@ -1490,8 +1501,8 @@ app.post("/api/employees", async (req, res) => {
     const insertQuery = `
       INSERT INTO emp_list (
         first_name, middle_name, last_name, age, birth_date, contact_number, email,
-        civil_status, address, hire_date, position, department, status, salary,
-        id_number, id_barcode, tin_number, sss_number, pagibig_number, philhealth_number,
+        civil_status, address, hire_date, position, department, status, id_number, id_barcode, salary,
+        tin_number, sss_number, pagibig_number, philhealth_number,
         username, access_level, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
@@ -1510,9 +1521,9 @@ app.post("/api/employees", async (req, res) => {
       position,
       department,
       status,
+      employeeId, // Maps to id_number
+      idBarcode || null, // Maps to id_barcode (optional)
       salary || null,
-      generatedIdNumber,
-      generatedIdBarcode,
       tinNumber || null,
       sssNumber || null,
       pagibigNumber || null,
@@ -1529,14 +1540,14 @@ app.post("/api/employees", async (req, res) => {
           uid as id,
           (first_name || ' ' || COALESCE(middle_name || ' ', '') || last_name) as full_name,
           first_name, middle_name, last_name, age, birth_date, contact_number, email,
-          civil_status, address, hire_date, position, department, status, salary,
-          id_number, id_barcode, tin_number, sss_number, pagibig_number, philhealth_number,
+          civil_status, address, hire_date, position, department, status, id_number, id_barcode, salary,
+          tin_number, sss_number, pagibig_number, philhealth_number,
           username, access_level, created_at
         FROM emp_list 
         WHERE uid = ?
       `, [result.lastID]);
 
-      console.log(`Successfully added employee: ${newEmployee.full_name} (ID: ${result.lastID})`);
+      console.log(`Successfully added employee: ${newEmployee.full_name} (ID: ${result.lastID}, Employee ID: ${newEmployee.id_number})`);
 
       res.status(201).json({
         success: true,
@@ -1557,9 +1568,9 @@ app.post("/api/employees", async (req, res) => {
           position: newEmployee.position,
           department: newEmployee.department,
           status: newEmployee.status,
-          salary: newEmployee.salary,
-          idNumber: newEmployee.id_number,
+          employeeId: newEmployee.id_number, // Return as employeeId for frontend consistency
           idBarcode: newEmployee.id_barcode,
+          salary: newEmployee.salary,
           tinNumber: newEmployee.tin_number,
           sssNumber: newEmployee.sss_number,
           pagibigNumber: newEmployee.pagibig_number,
@@ -1756,139 +1767,174 @@ app.get("/api/departments", async (req, res) => {
   }
 });
 
-// GET endpoint to validate employee data (used for form validation)
+// Replace your existing validation endpoint in server.js with this improved version:
+
 app.get("/api/employees/validate", async (req, res) => {
+  console.log('=== VALIDATION ENDPOINT START ===');
+  console.log('Raw query params:', req.query);
+  
   try {
     if (!db) {
+      console.error('Database not initialized');
       return res.status(500).json({ 
         success: false,
         error: "Database not initialized" 
       });
     }
 
-    const { email, username, excludeId } = req.query;
+    const { email, username, employeeId, idBarcode, excludeId } = req.query;
+    
+    console.log('Validation request received:', { email, username, employeeId, idBarcode, excludeId });
+    
+    // Validate that at least one field is provided
+    if (!email && !username && !employeeId && !idBarcode) {
+      console.log('No validation fields provided');
+      return res.status(400).json({
+        success: false,
+        error: "At least one field must be provided for validation"
+      });
+    }
+    
     const validationResults = {};
 
     // Check email uniqueness
-    if (email) {
-      let emailQuery = 'SELECT uid FROM emp_list WHERE LOWER(email) = LOWER(?)';
-      let emailParams = [email];
-      
-      if (excludeId) {
-        emailQuery += ' AND uid != ?';
-        emailParams.push(excludeId);
+    if (email && email.trim()) {
+      try {
+        let emailQuery = 'SELECT uid FROM emp_list WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))';
+        let emailParams = [email];
+        
+        if (excludeId && !isNaN(parseInt(excludeId))) {
+          emailQuery += ' AND uid != ?';
+          emailParams.push(parseInt(excludeId));
+        }
+        
+        const emailExists = await db.get(emailQuery, emailParams);
+        validationResults.emailAvailable = !emailExists;
+        console.log('Email validation result:', { email, exists: !!emailExists, available: !emailExists });
+      } catch (dbError) {
+        console.error("Database error checking email:", dbError);
+        return res.status(500).json({
+          success: false,
+          error: "Database error while checking email",
+          details: dbError.message
+        });
       }
-      
-      const emailExists = await db.get(emailQuery, emailParams);
-      validationResults.emailAvailable = !emailExists;
     }
 
     // Check username uniqueness
-    if (username) {
-      let usernameQuery = 'SELECT uid FROM emp_list WHERE LOWER(username) = LOWER(?)';
-      let usernameParams = [username];
-      
-      if (excludeId) {
-        usernameQuery += ' AND uid != ?';
-        usernameParams.push(excludeId);
+    if (username && username.trim()) {
+      try {
+        let usernameQuery = 'SELECT uid FROM emp_list WHERE LOWER(TRIM(username)) = LOWER(TRIM(?))';
+        let usernameParams = [username];
+        
+        if (excludeId && !isNaN(parseInt(excludeId))) {
+          usernameQuery += ' AND uid != ?';
+          usernameParams.push(parseInt(excludeId));
+        }
+        
+        const usernameExists = await db.get(usernameQuery, usernameParams);
+        validationResults.usernameAvailable = !usernameExists;
+        console.log('Username validation result:', { username, exists: !!usernameExists, available: !usernameExists });
+      } catch (dbError) {
+        console.error("Database error checking username:", dbError);
+        return res.status(500).json({
+          success: false,
+          error: "Database error while checking username",
+          details: dbError.message
+        });
       }
-      
-      const usernameExists = await db.get(usernameQuery, usernameParams);
-      validationResults.usernameAvailable = !usernameExists;
     }
 
-    // FIXED: Check employee ID uniqueness using correct field name
-    if (req.query.employeeId) {
-      let employeeIdQuery = 'SELECT uid FROM emp_list WHERE id_number = ?';
-      let employeeIdParams = [req.query.employeeId];
-      
-      if (excludeId) {
-        employeeIdQuery += ' AND uid != ?';
-        employeeIdParams.push(excludeId);
+    // Check employee ID uniqueness - FIXED VALIDATION
+    if (employeeId && employeeId.trim()) {
+      try {
+        const trimmedEmployeeId = employeeId.trim();
+        
+        // Remove overly strict validation - accept any non-empty employee ID
+        if (!trimmedEmployeeId) {
+          validationResults.employeeIdAvailable = false;
+          return res.json({
+            success: true,
+            data: { ...validationResults, employeeIdAvailable: false }
+          });
+        }
+
+        let employeeIdQuery = 'SELECT uid, id_number FROM emp_list WHERE TRIM(id_number) = ?';
+        let employeeIdParams = [trimmedEmployeeId];
+        
+        if (excludeId && !isNaN(parseInt(excludeId))) {
+          employeeIdQuery += ' AND uid != ?';
+          employeeIdParams.push(parseInt(excludeId));
+        }
+        
+        console.log('Executing employee ID query:', { 
+          query: employeeIdQuery, 
+          params: employeeIdParams,
+          originalEmployeeId: employeeId,
+          trimmedEmployeeId: trimmedEmployeeId
+        });
+        
+        const employeeIdExists = await db.get(employeeIdQuery, employeeIdParams);
+        validationResults.employeeIdAvailable = !employeeIdExists;
+        console.log('Employee ID validation result:', { 
+          employeeId: trimmedEmployeeId, 
+          exists: !!employeeIdExists, 
+          available: !employeeIdExists,
+          foundRecord: employeeIdExists 
+        });
+        
+      } catch (dbError) {
+        console.error("Database error checking employee ID:", dbError);
+        return res.status(500).json({
+          success: false,
+          error: "Database error while checking employee ID",
+          details: dbError.message
+        });
       }
-      
-      const employeeIdExists = await db.get(employeeIdQuery, employeeIdParams);
-      validationResults.employeeIdAvailable = !employeeIdExists;
     }
 
+    // Check ID barcode uniqueness
+    if (idBarcode && idBarcode.trim()) {
+      try {
+        let barcodeQuery = 'SELECT uid FROM emp_list WHERE TRIM(id_barcode) = TRIM(?)';
+        let barcodeParams = [idBarcode];
+        
+        if (excludeId && !isNaN(parseInt(excludeId))) {
+          barcodeQuery += ' AND uid != ?';
+          barcodeParams.push(parseInt(excludeId));
+        }
+        
+        const barcodeExists = await db.get(barcodeQuery, barcodeParams);
+        validationResults.idBarcodeAvailable = !barcodeExists;
+        console.log('ID Barcode validation result:', { idBarcode, exists: !!barcodeExists, available: !barcodeExists });
+      } catch (dbError) {
+        console.error("Database error checking ID barcode:", dbError);
+        return res.status(500).json({
+          success: false,
+          error: "Database error while checking ID barcode",
+          details: dbError.message
+        });
+      }
+    }
+
+    console.log('Final validation results:', validationResults);
+
+    // Always return success with the validation results
     res.json({
       success: true,
       data: validationResults
     });
 
   } catch (error) {
-    console.error("Error validating employee data:", error);
+    console.error("Unexpected error in validation endpoint:", error);
     res.status(500).json({ 
       success: false,
       error: "Failed to validate employee data",
-      message: error.message 
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
-
-// app.get("/api/employees/generateid", async (req, res) => {
-//   try {
-//     if (!db) {
-//       return res.status(500).json({ 
-//         success: false,
-//         error: "Database not initialized" 
-//       });
-//     }
-
-//     const currentYear = new Date().getFullYear();
-    
-//     // FIXED: Use correct field name 'id_number' instead of 'employeeId'
-//     const countResult = await db.get(
-//       `SELECT COUNT(*) as count FROM emp_list 
-//        WHERE strftime('%Y', hire_date) = ? 
-//        OR id_number LIKE ?`, 
-//       [currentYear.toString(), `EMP-${currentYear}-%`]
-//     );
-    
-//     const employeeCount = (countResult?.count || 0) + 1;
-//     let generatedIdNumber = `EMP-${currentYear}-${String(employeeCount).padStart(3, '0')}`;
-
-//     // FIXED: Use correct field name 'id_number'
-//     const existingEmployee = await db.get(
-//       'SELECT id_number FROM emp_list WHERE id_number = ?',
-//       [generatedIdNumber]
-//     );
-
-//     if (existingEmployee) {
-//       // If ID exists, try incrementing until we find a unique one
-//       let counter = employeeCount + 1;
-//       let uniqueId;
-//       do {
-//         uniqueId = `EMP-${currentYear}-${String(counter).padStart(3, '0')}`;
-//         const existing = await db.get(
-//           'SELECT id_number FROM emp_list WHERE id_number = ?',
-//           [uniqueId]
-//         );
-//         if (!existing) break;
-//         counter++;
-//       } while (counter < 999);
-      
-//       generatedIdNumber = uniqueId;
-//     }
-
-//     console.log(`Generated employee ID: ${generatedIdNumber}`);
-
-//     res.json({
-//       success: true,
-//       data: {
-//         employeeId: generatedIdNumber
-//       }
-//     });
-
-//   } catch (error) {
-//     console.error("Error generating employee ID:", error);
-//     res.status(500).json({ 
-//       success: false,
-//       error: "Failed to generate employee ID",
-//       message: error.message 
-//     });
-//   }
-// });
 
 // Get all tables
 app.get("/api/tables", async (req, res) => {

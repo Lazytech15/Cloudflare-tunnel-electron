@@ -17,29 +17,29 @@ let tunnelUrl = null
 
 // Helper function to get the correct paths for production vs development
 function getAppPaths() {
-  const isDev = process.env.NODE_ENV === 'development' || process.defaultApp
-  
+  const isDev = process.env.NODE_ENV === "development" || process.defaultApp
+
   if (isDev) {
     // Development mode
     return {
       serverScript: path.join(__dirname, "server", "database-server.js"),
       databaseDir: __dirname,
-      resourcesPath: __dirname
+      resourcesPath: __dirname,
     }
   } else {
     // Production mode - use installation directory (where the app is installed)
     const installDir = path.dirname(process.execPath)
     const resourcesPath = process.resourcesPath || installDir
-    
+
     // Check if we have a bundled database in resources
     const bundledDbPath = path.join(resourcesPath, "app", "database.db")
     const installDbPath = path.join(installDir, "database.db")
-    
+
     console.log(`📂 Install directory: ${installDir}`)
     console.log(`📦 Resources path: ${resourcesPath}`)
     console.log(`🔍 Looking for bundled database at: ${bundledDbPath}`)
     console.log(`🎯 Target database location: ${installDbPath}`)
-    
+
     // Copy bundled database to main install directory if it doesn't exist
     if (fs.existsSync(bundledDbPath) && !fs.existsSync(installDbPath)) {
       try {
@@ -50,14 +50,14 @@ function getAppPaths() {
         console.log(`⚠️ Will try to use bundled location instead`)
       }
     }
-    
+
     // Use install directory if database exists there, otherwise use bundled location
     const finalDbDir = fs.existsSync(installDbPath) ? installDir : path.join(resourcesPath, "app")
-    
+
     return {
       serverScript: path.join(resourcesPath, "app", "server", "database-server.js"),
       databaseDir: finalDbDir,
-      resourcesPath: resourcesPath
+      resourcesPath: resourcesPath,
     }
   }
 }
@@ -97,22 +97,21 @@ function checkServerRunning(host, port) {
 }
 
 function createWindow() {
-mainWindow = new BrowserWindow({
-  width: 1400,
-  height: 900,
-  icon: path.join(__dirname, "build", "icon.ico"),
-  autoHideMenuBar: true, 
-  webPreferences: {
-    nodeIntegration: false,
-    contextIsolation: true,
-    enableRemoteModule: false,
-    webSecurity: true,
-    preload: path.join(__dirname, "preload.js"),
-  },
-  show: false,
-  title: "Easy Access Database Manager",
-});
-
+  mainWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    icon: path.join(__dirname, "build", "icon.ico"),
+    autoHideMenuBar: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      enableRemoteModule: false,
+      webSecurity: true,
+      preload: path.join(__dirname, "preload.js"),
+    },
+    show: false,
+    title: "Easy Access Database Manager",
+  })
 
   // Show window when ready to prevent visual flash
   mainWindow.once("ready-to-show", () => {
@@ -151,14 +150,14 @@ async function startDatabaseServer() {
     }
 
     // Set up environment variables for the spawned process
-    const isDev = process.env.NODE_ENV === 'development' || process.defaultApp
-    
+    const isDev = process.env.NODE_ENV === "development" || process.defaultApp
+
     // Try multiple possible node_modules locations
     const possibleNodeModulesPaths = [
-      path.join(paths.resourcesPath, 'app', 'node_modules'),
-      path.join(paths.resourcesPath, 'node_modules'),
-      path.join(path.dirname(process.execPath), 'node_modules'),
-      path.join(process.resourcesPath, 'node_modules'),
+      path.join(paths.resourcesPath, "app", "node_modules"),
+      path.join(paths.resourcesPath, "node_modules"),
+      path.join(path.dirname(process.execPath), "node_modules"),
+      path.join(process.resourcesPath, "node_modules"),
     ]
 
     let nodeModulesPath = null
@@ -192,14 +191,14 @@ async function startDatabaseServer() {
     }
 
     // In production, we might need to set the working directory to where node_modules exists
-    const workingDir = isDev ? paths.databaseDir : (nodeModulesPath ? path.dirname(nodeModulesPath) : paths.databaseDir)
+    const workingDir = isDev ? paths.databaseDir : nodeModulesPath ? path.dirname(nodeModulesPath) : paths.databaseDir
 
     console.log("🔧 Working directory:", workingDir)
     console.log("🌍 Environment variables:", {
       PORT: env.PORT,
       DATABASE_DIR: env.DATABASE_DIR,
       NODE_PATH: env.NODE_PATH,
-      NODE_ENV: env.NODE_ENV
+      NODE_ENV: env.NODE_ENV,
     })
 
     databaseServerProcess = spawn("node", [paths.serverScript], {
@@ -414,7 +413,7 @@ ipcMain.handle("get-status", () => {
     localUrl: `http://localhost:${PORTS.DATABASE_SERVER}`,
     networkUrl: `http://${getLocalNetworkIP()}:${PORTS.DATABASE_SERVER}`,
     databasePath: path.join(paths.databaseDir, "database.db"),
-    serverScriptPath: paths.serverScript
+    serverScriptPath: paths.serverScript,
   }
 })
 

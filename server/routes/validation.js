@@ -3,6 +3,22 @@ const { getDatabase } = require("../config/database")
 
 const router = express.Router()
 
+router.get("/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    database: connection ? "connected" : "disconnected",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    databaseDir: process.env.DATABASE_DIR || process.cwd(),
+    processInfo: {
+      pid: process.pid,
+      cwd: process.cwd(),
+      execPath: process.execPath,
+      arch: process.arch
+    }
+  })
+})
+
 // Employee validation endpoint
 router.get("/employees/validate", async (req, res) => {
   console.log("=== VALIDATION ENDPOINT START ===")

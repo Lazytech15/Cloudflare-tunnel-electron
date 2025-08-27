@@ -93,6 +93,7 @@ app.get("/api/health", (req, res) => {
   })
 })
 
+
 // Mount route modules
 app.use("/api", authRoutes)
 app.use("/api", validationRoutes)

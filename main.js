@@ -4,6 +4,7 @@ const { spawn } = require("child_process")
 const http = require("http")
 const { networkInterfaces } = require("os")
 const fs = require("fs")
+const DatabaseSetup = require('./build/databasesetup') // Add this import
 
 const PORTS = {
   DATABASE_SERVER: 3001,
@@ -14,6 +15,7 @@ let mainWindow
 let databaseServerProcess
 let tunnelProcess
 let tunnelUrl = null
+let databaseSetup = null // Add database setup instance
 
 // Helper function to get the correct paths for production vs development
 function getAppPaths() {
@@ -60,6 +62,15 @@ function getAppPaths() {
       resourcesPath: resourcesPath,
     }
   }
+}
+
+// Initialize database setup
+function initializeDatabaseSetup() {
+  const paths = getAppPaths()
+  const databasePath = path.join(paths.databaseDir, "database.db")
+  
+  databaseSetup = new DatabaseSetup(databasePath)
+  console.log(`🗄️ Database setup initialized for: ${databasePath}`)
 }
 
 // Helper function to get local network IP
@@ -127,15 +138,78 @@ function createWindow() {
   // Handle window closed
   mainWindow.on("closed", () => {
     mainWindow = null
+    // Close database connection when window is closed
+    if (databaseSetup) {
+      databaseSetup.close()
+    }
   })
 
   // Load the renderer HTML
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"))
 }
 
+async function ensureDatabaseExists() {
+  try {
+    if (!databaseSetup) {
+      initializeDatabaseSetup()
+    }
+
+    console.log("🔍 Checking database existence...")
+    
+    // Setup database if it doesn't exist
+    const result = await databaseSetup.setupDatabase(false) // Set to true if you want sample data
+    
+    if (result.success) {
+      console.log("✅ Database is ready")
+      
+      // Send status to renderer if window exists
+      if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send("database-status", {
+          ready: true,
+          message: result.message,
+          stats: databaseSetup.getDatabaseStats()
+        })
+      }
+      
+      return true
+    } else {
+      console.error("❌ Database setup failed:", result.error)
+      
+      // Send error to renderer
+      if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send("database-status", {
+          ready: false,
+          error: result.error
+        })
+      }
+      
+      return false
+    }
+  } catch (error) {
+    console.error("❌ Database initialization error:", error)
+    
+    // Send error to renderer
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send("database-status", {
+        ready: false,
+        error: error.message
+      })
+    }
+    
+    return false
+  }
+}
+
 async function startDatabaseServer() {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     console.log("🗄️ Starting SQLite database server...")
+
+    // Ensure database exists before starting server
+    const dbReady = await ensureDatabaseExists()
+    if (!dbReady) {
+      reject(new Error("Database setup failed"))
+      return
+    }
 
     const paths = getAppPaths()
     console.log("📁 Server script path:", paths.serverScript)
@@ -351,8 +425,14 @@ async function startCloudflaredTunnel() {
 }
 
 // App event listeners
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Initialize database setup
+  initializeDatabaseSetup()
+  
   createWindow()
+  
+  // Ensure database is ready on app start
+  await ensureDatabaseExists()
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -369,6 +449,11 @@ app.on("window-all-closed", () => {
     console.log("🛑 Stopping tunnel process...")
     tunnelProcess.kill()
   }
+  
+  // Close database connection
+  if (databaseSetup) {
+    databaseSetup.close()
+  }
 
   if (process.platform !== "darwin") app.quit()
 })
@@ -383,8 +468,14 @@ app.on("before-quit", () => {
     console.log("🛑 Stopping tunnel process...")
     tunnelProcess.kill()
   }
+  
+  // Close database connection
+  if (databaseSetup) {
+    databaseSetup.close()
+  }
 })
 
+// IPC Handlers
 ipcMain.handle("start-database-server", async () => {
   try {
     await startDatabaseServer()
@@ -414,6 +505,7 @@ ipcMain.handle("get-status", () => {
     networkUrl: `http://${getLocalNetworkIP()}:${PORTS.DATABASE_SERVER}`,
     databasePath: path.join(paths.databaseDir, "database.db"),
     serverScriptPath: paths.serverScript,
+    databaseStats: databaseSetup ? databaseSetup.getDatabaseStats() : null,
   }
 })
 
@@ -428,4 +520,43 @@ ipcMain.handle("stop-services", () => {
   }
   tunnelUrl = null
   return { success: true, message: "Services stopped" }
+})
+
+// Database-specific IPC handlers
+ipcMain.handle("setup-database", async (event, options = {}) => {
+  try {
+    if (!databaseSetup) {
+      initializeDatabaseSetup()
+    }
+    
+    const result = await databaseSetup.setupDatabase(options.insertSampleData || false)
+    return result
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle("test-database", () => {
+  try {
+    if (!databaseSetup) {
+      initializeDatabaseSetup()
+    }
+    
+    return databaseSetup.testDatabase()
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle("get-database-stats", () => {
+  try {
+    if (!databaseSetup) {
+      return { success: false, error: "Database setup not initialized" }
+    }
+    
+    const stats = databaseSetup.getDatabaseStats()
+    return { success: true, stats }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
 })

@@ -9,7 +9,8 @@
     "dev": "NODE_ENV=development electron . --dev",
     "build": "electron-builder",
     "dist": "electron-builder --publish=never",
-    "postinstall": "electron-builder install-app-deps && cd web-app && npm install"
+    "postinstall": "electron-builder install-app-deps && cd web-app && npm install",
+    "rebuild": "electron-rebuild"
   },
   "keywords": [
     "electron",
@@ -21,6 +22,7 @@
   "author": "Emmanuel S. Ablao",
   "license": "MIT",
   "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
     "electron": "^37.3.1",
     "electron-builder": "^26.0.12",
     "electron-rebuild": "^3.2.9"
@@ -28,6 +30,7 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.2.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "http-proxy-middleware": "^2.0.6",

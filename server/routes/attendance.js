@@ -73,7 +73,7 @@ router.get("/", async (req, res) => {
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
-    
+
     // Validate sort parameters
     const allowedSortColumns = ["clock_time", "date", "employee_uid", "id_number", "clock_type", "created_at"]
     const sortColumn = allowedSortColumns.includes(sort_by) ? sort_by : "clock_time"
@@ -134,9 +134,9 @@ router.post("/", async (req, res) => {
     const { attendance_data } = req.body
 
     // Handle both single record and array formats
-    const records = Array.isArray(attendance_data) ? attendance_data : 
-                   attendance_data ? [attendance_data] : 
-                   Array.isArray(req.body) ? req.body : []
+    const records = Array.isArray(attendance_data) ? attendance_data :
+      attendance_data ? [attendance_data] :
+        Array.isArray(req.body) ? req.body : []
 
     if (records.length === 0) {
       return res.json({
@@ -159,7 +159,7 @@ router.post("/", async (req, res) => {
     try {
       for (let i = 0; i < records.length; i++) {
         const record = records[i]
-        
+
         try {
           // Validate required fields
           if (!record.employee_uid || !record.clock_type || !record.clock_time || !record.date) {
@@ -234,6 +234,12 @@ router.post("/", async (req, res) => {
       }
 
       await db.run("COMMIT")
+
+      // Emit socket event for synced records if any were processed
+      if (processedCount > 0) {
+        const { socketEvents } = require("../config/socket")
+        socketEvents.attendanceSynced({ synced_count: processedCount })
+      }
 
       // Send success response matching your existing sync expectation
       res.json({
@@ -346,6 +352,12 @@ router.post("/record", async (req, res) => {
       WHERE a.id = ?
     `, [result.lastID])
 
+    if (result.changes > 0) {
+      // Emit socket event for new attendance record
+      const { socketEvents } = require("../config/socket")
+      socketEvents.attendanceCreated(newRecord)
+    }
+
     res.status(201).json({
       success: true,
       message: "Attendance record created successfully",
@@ -426,6 +438,11 @@ router.post("/mark-synced", async (req, res) => {
       message: `Marked ${result.changes} records as synced`,
       updated_count: result.changes
     })
+
+    if (result.changes > 0) {
+      const { socketEvents } = require("../config/socket")
+      socketEvents.attendanceSynced({ synced_count: result.changes })
+    }
 
   } catch (error) {
     console.error("Error marking records as synced:", error)
@@ -606,24 +623,28 @@ router.put("/:id", async (req, res) => {
     params.push(id)
 
     await db.run(`
-      UPDATE attendance 
-      SET ${updates.join(", ")}
-      WHERE id = ?
-    `, params)
+  UPDATE attendance 
+  SET ${updates.join(", ")}
+  WHERE id = ?
+`, params)
 
     // Fetch updated record with employee details
     const updatedRecord = await db.get(`
-      SELECT 
-        a.*,
-        e.first_name,
-        e.middle_name,
-        e.last_name,
-        e.department,
-        e.position
-      FROM attendance a
-      LEFT JOIN emp_list e ON a.employee_uid = e.uid
-      WHERE a.id = ?
-    `, [id])
+  SELECT 
+    a.*,
+    e.first_name,
+    e.middle_name,
+    e.last_name,
+    e.department,
+    e.position
+  FROM attendance a
+  LEFT JOIN emp_list e ON a.employee_uid = e.uid
+  WHERE a.id = ?
+`, [id])
+
+    // Emit socket event BEFORE response
+    const { socketEvents } = require("../config/socket")
+    socketEvents.attendanceUpdated(updatedRecord)
 
     res.json({
       success: true,
@@ -656,9 +677,13 @@ router.delete("/:id", async (req, res) => {
       })
     }
 
-    await db.run("DELETE FROM attendance WHERE id = ?", [id])
+    const result = await db.run("DELETE FROM attendance WHERE id = ?", [id])
 
-    res.json({
+    // Emit socket event BEFORE response
+    const { socketEvents } = require("../config/socket")
+    socketEvents.attendanceDeleted({ id: parseInt(id) })
+
+    result.json({
       success: true,
       message: "Attendance record deleted successfully"
     })

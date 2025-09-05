@@ -120,6 +120,34 @@ const socketEvents = {
       console.log(`📡 Emitted data:changed for table ${table}, action ${action}`)
     }
   },
+  // Attendance events (matching what your frontend expects)
+  attendanceCreated: (data) => {
+    if (io) {
+      io.emit('attendance_created', data)
+      console.log('Emitted attendance_created event:', data.id)
+    }
+  },
+
+  attendanceUpdated: (data) => {
+    if (io) {
+      io.emit('attendance_updated', data)  
+      console.log('Emitted attendance_updated event:', data.id)
+    }
+  },
+
+  attendanceDeleted: (data) => {
+    if (io) {
+      io.emit('attendance_deleted', data)
+      console.log('Emitted attendance_deleted event:', data.id)
+    }
+  },
+
+  attendanceSynced: (data) => {
+    if (io) {
+      io.emit('attendance_synced', data)
+      console.log('Emitted attendance_synced event:', data.synced_count)
+    }
+  }
 }
 
 module.exports = {

@@ -61,7 +61,9 @@ const tableRoutes = require("./routes/tables")
 const uploadRoutes = require("./routes/upload")  
 const fileRoutes = require("./routes/files")
 const itemsRoutes = require("./routes/items")
-const attendanceRoutes = require("./routes/attendance")    
+const attendanceRoutes = require("./routes/attendance")
+const profileRoutes = require("./routes/profile")
+const addEmployees = require("./routes/addEmployee")    
 
 const app = express()
 const server = http.createServer(app)
@@ -106,6 +108,9 @@ app.use("/api/uploads", uploadRoutes)
 app.use("/api/files", fileRoutes)
 app.use("/api/items", itemsRoutes)
 app.use("/api/attendance", attendanceRoutes)
+app.use("/api/profile", profileRoutes)
+app.use("/api/add", addEmployees)
+
 
 // Legacy sample data endpoint (keeping for backward compatibility)
 app.get("/api/data", async (req, res) => {

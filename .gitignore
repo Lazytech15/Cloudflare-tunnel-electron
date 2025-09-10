@@ -22,3 +22,5 @@ coverage
 *.tar
 dist
 dist-electron
+.db-shm
+.db-wal

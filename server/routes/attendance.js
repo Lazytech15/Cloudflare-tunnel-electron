@@ -1,4 +1,4 @@
-//attendance.js
+// server-attendance.js
 const express = require("express")
 const router = express.Router()
 

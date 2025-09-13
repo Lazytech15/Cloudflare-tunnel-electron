@@ -63,7 +63,8 @@ const fileRoutes = require("./routes/files")
 const itemsRoutes = require("./routes/items")
 const attendanceRoutes = require("./routes/attendance")
 const profileRoutes = require("./routes/profile")
-const addEmployees = require("./routes/addEmployee")    
+const addEmployees = require("./routes/addEmployee") 
+const dailysummary = require("./routes/daily-attendance-summary")    
 
 const app = express()
 const server = http.createServer(app)
@@ -110,6 +111,8 @@ app.use("/api/items", itemsRoutes)
 app.use("/api/attendance", attendanceRoutes)
 app.use("/api/profile", profileRoutes)
 app.use("/api/add", addEmployees)
+app.use("/api/dailysummary", dailysummary)
+
 
 
 // Legacy sample data endpoint (keeping for backward compatibility)

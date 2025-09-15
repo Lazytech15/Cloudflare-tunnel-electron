@@ -32,6 +32,11 @@ function initSocket(server) {
       console.log(`🔐 Client ${socket.id} joined auth room`)
     })
 
+    socket.on("join-daily-summary", () => {
+      socket.join("daily-summary")
+      console.log(`📊 Client ${socket.id} joined daily-summary room`)
+    })
+
     // Handle disconnection
     socket.on("disconnect", (reason) => {
       console.log(`🔌 Client disconnected: ${socket.id}, reason: ${reason}`)
@@ -120,32 +125,94 @@ const socketEvents = {
       console.log(`📡 Emitted data:changed for table ${table}, action ${action}`)
     }
   },
+
   // Attendance events (matching what your frontend expects)
   attendanceCreated: (data) => {
     if (io) {
       io.emit('attendance_created', data)
-      console.log('Emitted attendance_created event:', data.id)
+      console.log('📡 Emitted attendance_created event:', data.id)
     }
   },
 
   attendanceUpdated: (data) => {
     if (io) {
       io.emit('attendance_updated', data)  
-      console.log('Emitted attendance_updated event:', data.id)
+      console.log('📡 Emitted attendance_updated event:', data.id)
     }
   },
 
   attendanceDeleted: (data) => {
     if (io) {
       io.emit('attendance_deleted', data)
-      console.log('Emitted attendance_deleted event:', data.id)
+      console.log('📡 Emitted attendance_deleted event:', data.id)
     }
   },
 
   attendanceSynced: (data) => {
     if (io) {
       io.emit('attendance_synced', data)
-      console.log('Emitted attendance_synced event:', data.synced_count)
+      console.log('📡 Emitted attendance_synced event:', data.synced_count)
+    }
+  },
+
+  // Daily Summary events (NEWLY ADDED - this fixes your error!)
+  dailySummarySynced: (data) => {
+    if (io) {
+      io.to("daily-summary").emit('daily_summary_synced', {
+        success: true,
+        synced_count: data.synced_count || data.processed_count,
+        timestamp: new Date().toISOString()
+      })
+      io.emit('daily_summary_synced', {
+        success: true,
+        synced_count: data.synced_count || data.processed_count,
+        timestamp: new Date().toISOString()
+      })
+      console.log('📡 Emitted daily_summary_synced event:', data.synced_count || data.processed_count)
+    }
+  },
+
+  dailySummaryDeleted: (data) => {
+    if (io) {
+      io.to("daily-summary").emit('daily_summary_deleted', data)
+      io.emit('daily_summary_deleted', data)
+      console.log('📡 Emitted daily_summary_deleted event:', data.id)
+    }
+  },
+
+  dailySummaryRebuilt: (data) => {
+    if (io) {
+      io.to("daily-summary").emit('daily_summary_rebuilt', {
+        success: true,
+        processed_count: data.processed_count,
+        success_count: data.success_count,
+        fail_count: data.fail_count,
+        timestamp: new Date().toISOString()
+      })
+      io.emit('daily_summary_rebuilt', {
+        success: true,
+        processed_count: data.processed_count,
+        success_count: data.success_count,
+        fail_count: data.fail_count,
+        timestamp: new Date().toISOString()
+      })
+      console.log('📡 Emitted daily_summary_rebuilt event:', data.processed_count)
+    }
+  },
+
+  dailySummaryCreated: (data) => {
+    if (io) {
+      io.to("daily-summary").emit('daily_summary_created', data)
+      io.emit('daily_summary_created', data)
+      console.log('📡 Emitted daily_summary_created event:', data.id)
+    }
+  },
+
+  dailySummaryUpdated: (data) => {
+    if (io) {
+      io.to("daily-summary").emit('daily_summary_updated', data)
+      io.emit('daily_summary_updated', data)
+      console.log('📡 Emitted daily_summary_updated event:', data.id)
     }
   }
 }

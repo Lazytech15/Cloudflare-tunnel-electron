@@ -50,6 +50,7 @@
     },
     "icon": "build/icon.ico",
     "files": [
+      "build/**/*",
       "main.js",
       "preload.js",
       "server/**/*",

@@ -60,12 +60,13 @@ const departmentRoutes = require("./routes/departments")
 const tableRoutes = require("./routes/tables")
 const uploadRoutes = require("./routes/upload")  
 const fileRoutes = require("./routes/files")
-const itemsRoutes = require("./routes/items")
+const itemsRoutes = require("./routes/itemRoutes/itemsMain")
 const attendanceRoutes = require("./routes/attendance")
 const profileRoutes = require("./routes/profile")
 const documentRoutes = require("./routes/documents")
 const addEmployees = require("./routes/addEmployee") 
-const dailysummary = require("./routes/daily-attendance-summary")    
+const dailysummary = require("./routes/daily-attendance-summary")
+const employeeLogs = require("./routes/employee-logs")    
 
 const app = express()
 const server = http.createServer(app)
@@ -114,6 +115,7 @@ app.use("/api/profile", profileRoutes)
 app.use("/api/document", documentRoutes)
 app.use("/api/add", addEmployees)
 app.use("/api/dailysummary", dailysummary)
+app.use("/api/employeelogs", employeeLogs)
 
 
 

@@ -1099,4 +1099,358 @@ router.get("/reports/inventory-summary", async (req, res) => {
   }
 })
 
+//user endpoint
+
+// PUT /api/items/:id/quantity - For direct quantity updates
+router.put("/:id/quantity", async (req, res) => {
+  try {
+    const { getDatabase } = require("../config/database")
+    const db = getDatabase()
+
+    const itemNo = req.params.id
+    const { in_qty, out_qty, balance, update_type, notes, updated_by } = req.body
+
+    // Validate input - at least one quantity field should be provided
+    if (in_qty === undefined && out_qty === undefined && balance === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: "At least one quantity field (in_qty, out_qty, or balance) must be provided"
+      })
+    }
+
+    // Get current item data
+    const currentItem = await db.get(
+      `SELECT item_no, item_name, in_qty, out_qty, balance FROM itemsdb WHERE item_no = ?`,
+      [itemNo]
+    )
+
+    if (!currentItem) {
+      return res.status(404).json({
+        success: false,
+        error: "Item not found"
+      })
+    }
+
+    // Determine what to update based on update_type or provided fields
+    let newInQty = currentItem.in_qty
+    let newOutQty = currentItem.out_qty
+    let newBalance = currentItem.balance
+
+    if (update_type === "set_balance" && balance !== undefined) {
+      // Direct balance update
+      if (balance < 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Balance cannot be negative"
+        })
+      }
+      newBalance = balance
+    } else if (update_type === "adjust_in" && in_qty !== undefined) {
+      // Adjust in_qty and recalculate balance
+      if (in_qty < 0) {
+        return res.status(400).json({
+          success: false,
+          error: "In quantity cannot be negative"
+        })
+      }
+      newInQty = in_qty
+      newBalance = newInQty - newOutQty
+    } else if (update_type === "adjust_out" && out_qty !== undefined) {
+      // Adjust out_qty and recalculate balance
+      if (out_qty < 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Out quantity cannot be negative"
+        })
+      }
+      newOutQty = out_qty
+      newBalance = newInQty - newOutQty
+    } else {
+      // Manual update of individual fields
+      if (in_qty !== undefined) {
+        if (in_qty < 0) {
+          return res.status(400).json({
+            success: false,
+            error: "In quantity cannot be negative"
+          })
+        }
+        newInQty = in_qty
+      }
+      
+      if (out_qty !== undefined) {
+        if (out_qty < 0) {
+          return res.status(400).json({
+            success: false,
+            error: "Out quantity cannot be negative"
+          })
+        }
+        newOutQty = out_qty
+      }
+      
+      if (balance !== undefined) {
+        if (balance < 0) {
+          return res.status(400).json({
+            success: false,
+            error: "Balance cannot be negative"
+          })
+        }
+        newBalance = balance
+      } else {
+        // Recalculate balance if not explicitly provided
+        newBalance = newInQty - newOutQty
+      }
+    }
+
+    // Validate that balance makes sense
+    if (newBalance < 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Calculated balance would be negative. Please check your quantities."
+      })
+    }
+
+    // Update the item
+    await db.run(
+      `UPDATE itemsdb SET 
+         in_qty = ?, 
+         out_qty = ?, 
+         balance = ?
+       WHERE item_no = ?`,
+      [newInQty, newOutQty, newBalance, itemNo]
+    )
+
+    // Get the updated item
+    const updatedItem = await db.get(
+      `SELECT 
+        item_no, item_name, brand, item_type, location, unit_of_measure,
+        in_qty, out_qty, balance, min_stock, deficit,
+        price_per_unit, cost, item_status, last_po, supplier
+      FROM itemsdb 
+      WHERE item_no = ?`,
+      [itemNo]
+    )
+
+    res.json({
+      success: true,
+      message: "Item quantities updated successfully",
+      data: {
+        item: updatedItem,
+        changes: {
+          previous: {
+            in_qty: currentItem.in_qty,
+            out_qty: currentItem.out_qty,
+            balance: currentItem.balance
+          },
+          updated: {
+            in_qty: newInQty,
+            out_qty: newOutQty,
+            balance: newBalance
+          },
+          update_type: update_type || "manual",
+          notes: notes || null,
+          updated_by: updated_by || null,
+          timestamp: new Date().toISOString()
+        }
+      }
+    })
+
+  } catch (error) {
+    console.error("Error updating item quantities:", error)
+    res.status(500).json({
+      success: false,
+      error: "Failed to update item quantities",
+      message: error.message
+    })
+  }
+})
+
+// POST /api/items/:id/out - For recording items going out
+router.post("/:id/out", async (req, res) => {
+  try {
+    const { getDatabase } = require("../config/database")
+    const db = getDatabase()
+
+    const itemNo = req.params.id
+    const { quantity, notes, out_by } = req.body
+
+    // Validate input
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Quantity must be a positive number"
+      })
+    }
+
+    // Get current item data
+    const currentItem = await db.get(
+      `SELECT item_no, item_name, balance, out_qty FROM itemsdb WHERE item_no = ?`,
+      [itemNo]
+    )
+
+    if (!currentItem) {
+      return res.status(404).json({
+        success: false,
+        error: "Item not found"
+      })
+    }
+
+    // Check if there's enough stock
+    if (currentItem.balance < quantity) {
+      return res.status(400).json({
+        success: false,
+        error: `Insufficient stock. Available: ${currentItem.balance}, Requested: ${quantity}`
+      })
+    }
+
+    // Update the item quantities
+    const newOutQty = (currentItem.out_qty || 0) + quantity
+    const newBalance = currentItem.balance - quantity
+
+    await db.run(
+      `UPDATE itemsdb SET 
+         out_qty = ?, 
+         balance = ?
+       WHERE item_no = ?`,
+      [newOutQty, newBalance, itemNo]
+    )
+
+    // Get the updated item
+    const updatedItem = await db.get(
+      `SELECT 
+        item_no, item_name, brand, item_type, location, unit_of_measure,
+        in_qty, out_qty, balance, min_stock, deficit,
+        price_per_unit, cost, item_status, last_po, supplier
+      FROM itemsdb 
+      WHERE item_no = ?`,
+      [itemNo]
+    )
+
+    res.json({
+      success: true,
+      message: "Item out quantity recorded successfully",
+      data: {
+        item: updatedItem,
+        transaction: {
+          quantity_out: quantity,
+          previous_balance: currentItem.balance,
+          new_balance: newBalance,
+          notes: notes || null,
+          out_by: out_by || null,
+          timestamp: new Date().toISOString()
+        }
+      }
+    })
+
+  } catch (error) {
+    console.error("Error recording item out:", error)
+    res.status(500).json({
+      success: false,
+      error: "Failed to record item out",
+      message: error.message
+    })
+  }
+})
+
+// POST /api/checkout - For processing checkout transactions
+router.post("/", async (req, res) => {
+  try {
+    const { getDatabase } = require("../config/database")
+    const db = getDatabase()
+
+    const { items, checkout_by, notes } = req.body
+
+    // Validate input
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid input: items array is required and cannot be empty"
+      })
+    }
+
+    // Validate each item in the checkout
+    for (const item of items) {
+      if (!item.item_no || !item.quantity || item.quantity <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Each item must have item_no and positive quantity"
+        })
+      }
+    }
+
+    // Start transaction
+    await db.run("BEGIN TRANSACTION")
+
+    try {
+      const checkoutResults = []
+      const timestamp = new Date().toISOString()
+
+      for (const item of items) {
+        const { item_no, quantity } = item
+
+        // Get current item data
+        const currentItem = await db.get(
+          `SELECT item_no, item_name, balance, out_qty FROM itemsdb WHERE item_no = ?`,
+          [item_no]
+        )
+
+        if (!currentItem) {
+          throw new Error(`Item ${item_no} not found`)
+        }
+
+        // Check if there's enough stock
+        if (currentItem.balance < quantity) {
+          throw new Error(`Insufficient stock for item ${item_no}. Available: ${currentItem.balance}, Requested: ${quantity}`)
+        }
+
+        // Update the item quantities
+        const newOutQty = (currentItem.out_qty || 0) + quantity
+        const newBalance = currentItem.balance - quantity
+
+        await db.run(
+          `UPDATE itemsdb SET 
+             out_qty = ?, 
+             balance = ?
+           WHERE item_no = ?`,
+          [newOutQty, newBalance, item_no]
+        )
+
+        checkoutResults.push({
+          item_no: item_no,
+          item_name: currentItem.item_name,
+          quantity_checked_out: quantity,
+          previous_balance: currentItem.balance,
+          new_balance: newBalance
+        })
+      }
+
+      // Commit transaction
+      await db.run("COMMIT")
+
+      res.json({
+        success: true,
+        message: "Checkout processed successfully",
+        data: {
+          checkout_timestamp: timestamp,
+          checkout_by: checkout_by || null,
+          notes: notes || null,
+          items: checkoutResults
+        }
+      })
+
+    } catch (error) {
+      // Rollback transaction on error
+      await db.run("ROLLBACK")
+      throw error
+    }
+
+  } catch (error) {
+    console.error("Error processing checkout:", error)
+    res.status(500).json({
+      success: false,
+      error: "Failed to process checkout",
+      message: error.message
+    })
+  }
+})
+
 module.exports = router

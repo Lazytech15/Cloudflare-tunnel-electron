@@ -50,7 +50,7 @@ class DatabaseSetup {
 
       // Check if tables exist
       const tables = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-      const requiredTables = ['admin_logs', 'emp_list', 'employee_logs', 'itemsdb', 'attendance', 'daily_attendance_summary'];
+      const requiredTables = ['admin_logs', 'emp_list', 'employee_logs', 'itemsdb', 'attendance', 'daily_attendance_summary', 'purchase_orders', 'purchase_order_items'];
       const existingTables = tables.map(t => t.name);
       
       const missingTables = requiredTables.filter(table => !existingTables.includes(table));
@@ -257,6 +257,41 @@ class DatabaseSetup {
         )
       `;
 
+      // Create purchase_orders table
+      const createPurchaseOrders = `
+        CREATE TABLE IF NOT EXISTS purchase_orders (
+          id TEXT PRIMARY KEY,
+          supplier TEXT NOT NULL,
+          status TEXT DEFAULT 'requested' CHECK (status IN ('requested', 'ordered', 'in_transit', 'ready_for_pickup', 'received', 'cancelled')),
+          order_date DATE NOT NULL,
+          expected_delivery_date DATE,
+          actual_delivery_date DATE,
+          total_items INTEGER DEFAULT 0,
+          total_quantity INTEGER DEFAULT 0,
+          total_value REAL DEFAULT 0,
+          notes TEXT,
+          priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+          created_by TEXT,
+          last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+
+      // Create purchase_order_items table
+      const createPurchaseOrderItems = `
+        CREATE TABLE IF NOT EXISTS purchase_order_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          purchase_order_id TEXT NOT NULL,
+          item_no TEXT NOT NULL,
+          item_name TEXT NOT NULL,
+          quantity INTEGER NOT NULL,
+          unit_price REAL NOT NULL,
+          status TEXT DEFAULT 'ordered' CHECK (status IN ('ordered', 'in_transit', 'received', 'cancelled')),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (purchase_order_id) REFERENCES purchase_orders(id) ON DELETE CASCADE
+        )
+      `;
+
       // Execute table creation queries
       this.db.exec(createAdminLogs);
       console.log('✅ Created admin_logs table');
@@ -275,6 +310,12 @@ class DatabaseSetup {
 
       this.db.exec(createDailySummary);
       console.log('✅ Created daily_attendance_summary table');
+
+      this.db.exec(createPurchaseOrders);
+      console.log('✅ Created purchase_orders table');
+
+      this.db.exec(createPurchaseOrderItems);
+      console.log('✅ Created purchase_order_items table');
 
       // Create indexes for better performance
       this.createIndexes();

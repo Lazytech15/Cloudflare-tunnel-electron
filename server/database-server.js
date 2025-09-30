@@ -67,6 +67,7 @@ const documentRoutes = require("./routes/documents")
 const addEmployees = require("./routes/addEmployee") 
 const dailysummary = require("./routes/daily-attendance-summary")
 const employeeLogs = require("./routes/employee-logs")    
+const purchaseOrdersRoutes = require("./routes/purchase-orders")
 
 const app = express()
 const server = http.createServer(app)
@@ -116,6 +117,7 @@ app.use("/api/document", documentRoutes)
 app.use("/api/add", addEmployees)
 app.use("/api/dailysummary", dailysummary)
 app.use("/api/employeelogs", employeeLogs)
+app.use("/api/purchase-orders", purchaseOrdersRoutes)
 
 
 

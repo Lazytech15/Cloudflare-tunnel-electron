@@ -1,5 +1,3 @@
-// ==========================================
-// routes/items/services/item-service.js - Business logic service
 const { getDatabase } = require("../../config/database")
 
 class ItemService {

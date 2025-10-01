@@ -1,0 +1,27 @@
+# .htaccess - Place this in /api/ directory
+
+# Enable RewriteEngine
+RewriteEngine On
+RewriteBase /api/
+
+# Prevent access to sensitive files
+<FilesMatch "^(config|\.env|\.git)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Set UTF-8 encoding
+AddDefaultCharset UTF-8
+
+# Enable error logging
+php_flag display_errors Off
+php_flag log_errors On
+
+# Redirect all requests to index.php (except actual files/directories)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Handle CORS preflight requests
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ index.php [QSA,L]

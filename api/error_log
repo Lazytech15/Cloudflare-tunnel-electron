@@ -1,0 +1,111 @@
+[01-Oct-2025 01:29:56 UTC] 2025-10-01 01:29:56 - GET /api/index.php
+
+[01-Oct-2025 01:31:37 UTC] 2025-10-01 01:31:37 - GET /api/index.php
+
+[01-Oct-2025 01:35:06 UTC] 2025-10-01 01:35:06 - GET /api/test
+
+[01-Oct-2025 01:35:35 UTC] 2025-10-01 01:35:35 - GET /api/auth
+
+[01-Oct-2025 01:53:13 UTC] 2025-10-01 01:53:13 - GET /api/employees
+
+[01-Oct-2025 01:53:13 UTC] PHP Fatal error:  Cannot redeclare sendSuccessResponse() (previously declared in /home/a8b0qxizja9w/public_html/api/config/headers.php:79) in /home/a8b0qxizja9w/public_html/api/routes/employees.php on line 805
+[01-Oct-2025 01:53:23 UTC] 2025-10-01 01:53:23 - GET /api/employees
+
+[01-Oct-2025 01:53:23 UTC] PHP Fatal error:  Cannot redeclare sendSuccessResponse() (previously declared in /home/a8b0qxizja9w/public_html/api/config/headers.php:79) in /home/a8b0qxizja9w/public_html/api/routes/employees.php on line 805
+[01-Oct-2025 01:54:17 UTC] 2025-10-01 01:54:17 - GET /api/employees
+
+[01-Oct-2025 01:54:17 UTC] PHP Fatal error:  Cannot redeclare sendSuccessResponse() (previously declared in /home/a8b0qxizja9w/public_html/api/config/headers.php:79) in /home/a8b0qxizja9w/public_html/api/routes/employees.php on line 805
+[01-Oct-2025 01:57:45 UTC] 2025-10-01 01:57:45 - GET /api/employees
+
+[01-Oct-2025 01:57:45 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function getDatabaseConnection() in /home/a8b0qxizja9w/public_html/api/routes/employees.php:5
+Stack trace:
+#0 /home/a8b0qxizja9w/public_html/api/index.php(46): require_once()
+#1 {main}
+  thrown in /home/a8b0qxizja9w/public_html/api/routes/employees.php on line 5
+[01-Oct-2025 02:00:35 UTC] 2025-10-01 02:00:35 - GET /api/employees
+
+[01-Oct-2025 02:00:35 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function getDatabaseConnection() in /home/a8b0qxizja9w/public_html/api/routes/employees.php:5
+Stack trace:
+#0 /home/a8b0qxizja9w/public_html/api/index.php(46): require_once()
+#1 {main}
+  thrown in /home/a8b0qxizja9w/public_html/api/routes/employees.php on line 5
+[01-Oct-2025 02:16:38 UTC] 2025-10-01 02:16:38 - GET /api/employees
+
+[01-Oct-2025 02:16:38 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function getConnection() in /home/a8b0qxizja9w/public_html/api/routes/employees.php:6
+Stack trace:
+#0 /home/a8b0qxizja9w/public_html/api/index.php(46): require_once()
+#1 {main}
+  thrown in /home/a8b0qxizja9w/public_html/api/routes/employees.php on line 6
+[01-Oct-2025 02:20:32 UTC] PHP Fatal error:  Cannot redeclare sendErrorResponse() (previously declared in /home/a8b0qxizja9w/public_html/api/config/database.php:70) in /home/a8b0qxizja9w/public_html/api/config/headers.php on line 61
+[01-Oct-2025 02:22:00 UTC] 2025-10-01 02:22:00 - GET /api/employees
+
+[01-Oct-2025 03:08:46 UTC] 2025-10-01 03:08:46 - GET /api/test.php
+
+[01-Oct-2025 03:08:55 UTC] 2025-10-01 03:08:55 - GET /api/items
+
+[01-Oct-2025 03:08:55 UTC] PHP Warning:  require_once(/home/a8b0qxizja9w/public_html/api/routes/items.php): Failed to open stream: No such file or directory in /home/a8b0qxizja9w/public_html/api/index.php on line 65
+[01-Oct-2025 03:08:55 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/a8b0qxizja9w/public_html/api/routes/items.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/a8b0qxizja9w/public_html/api/index.php:65
+Stack trace:
+#0 {main}
+  thrown in /home/a8b0qxizja9w/public_html/api/index.php on line 65
+[01-Oct-2025 03:09:56 UTC] 2025-10-01 03:09:56 - GET /api/items
+
+[01-Oct-2025 03:09:56 UTC] PHP Warning:  require_once(/home/a8b0qxizja9w/public_html/api/routes/items.php): Failed to open stream: No such file or directory in /home/a8b0qxizja9w/public_html/api/routes/item.php on line 75
+[01-Oct-2025 03:09:56 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/a8b0qxizja9w/public_html/api/routes/items.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/a8b0qxizja9w/public_html/api/routes/item.php:75
+Stack trace:
+#0 /home/a8b0qxizja9w/public_html/api/index.php(65): require_once()
+#1 {main}
+  thrown in /home/a8b0qxizja9w/public_html/api/routes/item.php on line 75
+[01-Oct-2025 03:11:02 UTC] 2025-10-01 03:11:02 - GET /api/item
+
+[01-Oct-2025 03:11:13 UTC] 2025-10-01 03:11:13 - GET /api/items
+
+[01-Oct-2025 03:11:13 UTC] PHP Warning:  require_once(/home/a8b0qxizja9w/public_html/api/routes/items.php): Failed to open stream: No such file or directory in /home/a8b0qxizja9w/public_html/api/routes/item.php on line 75
+[01-Oct-2025 03:11:13 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/a8b0qxizja9w/public_html/api/routes/items.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/a8b0qxizja9w/public_html/api/routes/item.php:75
+Stack trace:
+#0 /home/a8b0qxizja9w/public_html/api/index.php(65): require_once()
+#1 {main}
+  thrown in /home/a8b0qxizja9w/public_html/api/routes/item.php on line 75
+[01-Oct-2025 03:12:00 UTC] 2025-10-01 03:12:00 - GET /api/employees
+
+[01-Oct-2025 03:14:19 UTC] 2025-10-01 03:14:19 - GET /api/items
+
+[01-Oct-2025 03:14:19 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function getDatabase() in /home/a8b0qxizja9w/public_html/api/routes/itemComponents/items.php:5
+Stack trace:
+#0 /home/a8b0qxizja9w/public_html/api/routes/item.php(77): handleGetItems()
+#1 /home/a8b0qxizja9w/public_html/api/index.php(65): require_once('/home/a8b0qxizj...')
+#2 {main}
+  thrown in /home/a8b0qxizja9w/public_html/api/routes/itemComponents/items.php on line 5
+[01-Oct-2025 03:15:44 UTC] 2025-10-01 03:15:44 - GET /api/items
+
+[01-Oct-2025 03:15:44 UTC] PHP Warning:  Undefined variable $db in /home/a8b0qxizja9w/public_html/api/routes/itemComponents/items.php on line 50
+[01-Oct-2025 03:15:44 UTC] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in /home/a8b0qxizja9w/public_html/api/routes/itemComponents/items.php:50
+Stack trace:
+#0 /home/a8b0qxizja9w/public_html/api/routes/item.php(77): handleGetItems()
+#1 /home/a8b0qxizja9w/public_html/api/index.php(65): require_once('/home/a8b0qxizj...')
+#2 {main}
+  thrown in /home/a8b0qxizja9w/public_html/api/routes/itemComponents/items.php on line 50
+[01-Oct-2025 03:16:51 UTC] 2025-10-01 03:16:51 - GET /api/items
+
+[01-Oct-2025 03:18:42 UTC] 2025-10-01 03:18:42 - GET /api/items
+
+[01-Oct-2025 03:24:03 UTC] 2025-10-01 03:24:03 - GET /api/items/api/items
+
+[01-Oct-2025 03:24:06 UTC] 2025-10-01 03:24:06 - GET /api/items/api/items?limit=1000
+
+[01-Oct-2025 03:24:06 UTC] 2025-10-01 03:24:06 - GET /api/items/api/items?limit=1000
+
+[01-Oct-2025 03:24:06 UTC] 2025-10-01 03:24:06 - GET /api/items/api/items?limit=1000
+
+[01-Oct-2025 03:24:06 UTC] 2025-10-01 03:24:07 - GET /api/items/api/items?limit=1000
+
+[01-Oct-2025 03:24:07 UTC] 2025-10-01 03:24:07 - GET /api/items/api/items?limit=1000
+
+[01-Oct-2025 03:24:07 UTC] 2025-10-01 03:24:07 - GET /api/items/api/items?limit=1000
+
+[01-Oct-2025 03:24:53 UTC] 2025-10-01 03:24:53 - GET /api/items/api/items
+
+[01-Oct-2025 03:24:53 UTC] 2025-10-01 03:24:53 - GET /api/items/api/items?limit=1000
+
+[01-Oct-2025 03:24:55 UTC] 2025-10-01 03:24:55 - GET /api/items/api/items?limit=1000
+

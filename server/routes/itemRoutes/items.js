@@ -168,6 +168,7 @@ router.post("/", validateItem, async (req, res) => {
     const in_qty = balance
     const out_qty = 0
 
+    // Insert the item first to get the item_no
     const result = await db.run(`
       INSERT INTO itemsdb (
         item_name, brand, item_type, location, unit_of_measure,
@@ -176,11 +177,22 @@ router.post("/", validateItem, async (req, res) => {
     `, [item_name, brand, item_type, location, unit_of_measure,
         in_qty, out_qty, min_stock, price_per_unit, supplier])
 
+    // Generate barcode using the item_no (lastID)
+    const barcode = `ITM${result.lastID.toString().padStart(3, '0')}`
+    
+    // Update the item with the generated barcode
+    await db.run(`
+      UPDATE itemsdb 
+      SET barcode = ? 
+      WHERE item_no = ?
+    `, [barcode, result.lastID])
+
+    // Retrieve the complete item with barcode
     const newItem = await db.get(`
       SELECT 
         item_no, item_name, brand, item_type, location, unit_of_measure,
         in_qty, out_qty, balance, min_stock, deficit,
-        price_per_unit, cost, item_status, last_po, supplier
+        price_per_unit, cost, item_status, last_po, supplier, barcode
       FROM itemsdb 
       WHERE item_no = ?
     `, [result.lastID])

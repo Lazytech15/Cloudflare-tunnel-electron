@@ -1,3 +1,4 @@
+// server/routes/auth.js
 const express = require("express")
 const { getDatabase } = require("../config/database")
 const { getUserRoleAndPermissions } = require("../middleware/auth")
